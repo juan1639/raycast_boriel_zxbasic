@@ -11,11 +11,11 @@ Const TILE_X AS Ubyte = 16
 Const TILE_Y AS Ubyte = 16
 Const NRO_COLUMNAS AS Ubyte = 16
 Const NRO_FILAS AS Ubyte = 12
-Const RES_X AS Ubyte = (NRO_COLUMNAS * TILE_X) - 1
-Const RES_Y AS Ubyte = NRO_FILAS * TILE_Y
+Const RES_X AS Integer = (NRO_COLUMNAS * TILE_X) - 1
+Const RES_Y AS Integer = NRO_FILAS * TILE_Y
 
 Const PI_VALUE = 3.141593
-Const NUM_RAYOS AS Ubyte = RES_X
+Const NUM_RAYOS AS Integer = RES_X
 Const FOV AS Ubyte = 60
 
 '===========================================================================
@@ -23,12 +23,12 @@ Const FOV AS Ubyte = 60
 '---------------------------------------------------------------------------
 '---------------------------   J U G A D O R   -----------------------------
 '---------------------------------------------------------------------------
-DIM jugadorX As Byte
-DIM jugadorY As Byte
+DIM jugadorX As Integer
+DIM jugadorY As Integer
 DIM jugadorAncho As Ubyte
 DIM jugadorAlto As Ubyte
 DIM jugadorAvanza As Byte
-DIM jugadorGira As Integer
+DIM jugadorGira As Byte
 DIM jugadorAnguloRotacion As Integer
 DIM jugadorVelGiro As Byte
 DIM jugadorVelMovimiento As Byte
@@ -36,8 +36,8 @@ DIM jugadorVelMovimiento As Byte
 '---------------------------------------------------------------------------
 '------------------------------   R A Y O  ---------------------------------
 '---------------------------------------------------------------------------
-DIM rayoX(NUM_RAYOS) As Byte
-DIM rayoY(NUM_RAYOS) As Byte
+DIM rayoX(NUM_RAYOS) As Integer
+DIM rayoY(NUM_RAYOS) As Integer
 DIM rayoAnguloRotacion(NUM_RAYOS) As Integer
 DIM rayoIncrementoAngulo(NUM_RAYOS) As Integer
 DIM rayoAngulo(NUM_RAYOS) As Integer
@@ -53,13 +53,17 @@ DIM rayoDistanciaPlanoProyeccion(NUM_RAYOS) As Integer
 DIM rayohCamara(NUM_RAYOS) As Integer
 
 '---------------------------------------------------------------------------
-Dim a, b, c As Ubyte
+Dim a, b As Integer
+Dim c, d As Ubyte
 Dim ciclos As Ubyte
 Dim gameOver AS Ubyte = 0
 
 Dim distanciaEntrePuntos As Integer = 0
 Dim calculaDistanciaEntrePuntos As Integer = 0
 Dim valorTile As Ubyte = 0
+
+Dim tonoPared AS Ubyte = 0
+Dim colorPared AS Ubyte = 5
 
 Dim medioFOV As Ubyte = 0
 Dim anguloInicial As Integer = 0
@@ -93,16 +97,23 @@ DIM escenario(NRO_FILAS - 1, NRO_COLUMNAS - 1) As Ubyte => { _
 
 '-------------------------------------------------------------
 Declare Function colision_escenario(x As Byte, y As Byte) As Ubyte
+Declare Function sub_colisionesHorizontales(a AS Integer) As Ubyte
+Declare Function sub_colisionesVerticales(a AS Integer) As Ubyte
+Declare Function abajo(a As Integer) As Ubyte
+Declare Function izquierda(a As Integer) AS Ubyte
 
 '=============================================================
 '--------                                             --------
 '--------            INICIALIZACION GENERAL           --------
 '--------                                             --------
 '-------------------------------------------------------------
+BORDER 1
+PAPER 0
+INK 7
 CLS
 PRINT AT 12, 7; " Cargando... "
 
-modo3d = 0  '          *** 0 = 2D (Mapa) ...  -1 = 3D  (variable Global) ***
+modo3d = 1  '          *** 0 = 2D (Mapa) ...  -1 = 3D  (variable Global) ***
 ciclos = 0
 gameOver = 0
 
@@ -126,7 +137,9 @@ jugadorVelMovimiento = 3
 '-------------------------------------------------------------
 medioFOV = Cast(Ubyte, FOV / 2)
 
-For a = 1 To NUM_RAYOS
+For a = 0 To NUM_RAYOS
+
+    PRINT AT 2,1; a
 
     rayoX(a) = jugadorX
     rayoY(a) = jugadorY
@@ -151,6 +164,8 @@ For a = 1 To NUM_RAYOS
 
 Next a
 
+PRINT AT 1,1; "Bucle principal..."
+
 '============================================================
 '--------                                            --------
 '--------      B U C L E   P R I N C I P A L         --------
@@ -162,7 +177,7 @@ Do
 
     dibuja_escenario()
     el_jugador()
-    'el_rayo()
+    el_rayo()
 
     ciclos = ciclos + 1
     IF ciclos >= 255 THEN ciclos = 0
@@ -197,6 +212,7 @@ Sub dibuja_escenario()
                     Draw TILE_X, 0
                     Draw 0, TILE_Y
                     Draw -TILE_X, 0
+                    Draw 0, -TILE_Y
                 End If
             
             Next x
@@ -205,7 +221,7 @@ Sub dibuja_escenario()
     Else
         Plot 0, Cast(Byte, RES_Y / 2)
         Draw RES_X, 0
-        'Line (0, Int(RES_Y / 2))-Step(RES_X, RES_Y), gris, BF
+        'Line (0, INT(RES_Y / 2))-Step(RES_X, RES_Y), gris, BF
     End If
 
 End Sub
@@ -228,6 +244,9 @@ Sub leer_teclado_jugador()
     keyDown = 0
     keyLeft = 0
     keyRight = 0
+
+    jugadorAvanza = 0
+    jugadorGira = 0
 
     '------------------------------------------------
     If (In($FBFE) & 1) = 0 Then
@@ -285,7 +304,7 @@ Sub dibuja_jugador()
     colorJugadorPto = 6
 
     If (modo3d = 0) Then
-        'Line (jugador.x - Int(ancho / 2), jugador.y - Int(alto / 2))-Step(ancho, alto), blanco, BF
+        'Line (jugador.x - INT(ancho / 2), jugador.y - INT(alto / 2))-Step(ancho, alto), blanco, BF
 
         INK colorJugadorPto
         Plot jugadorX, jugadorY
@@ -303,24 +322,20 @@ End Sub
 '================================================================================
 Sub el_rayo()
 
-    Dim a As Integer
+    Dim a As Ubyte
 
-    Dim whx As Single
-    Dim why As Single
-    Dim distanciaHorizontal As Single
-    Dim distanciaVertical As Single
-    Dim distanciaEntrePuntos As Single
-    Dim c As Single
-    Dim casilla As Integer
-
-    Shared rayo() As rayo
-    Shared jugador As jugador
-    Shared zBuffer() As Single
-    Shared nivel As Integer
+    Dim whx As Byte
+    Dim why As Byte
+    Dim distanciaHorizontal As Integer
+    Dim distanciaVertical As Integer
+    Dim distanciaEntrePuntos As Integer
+    Dim c As Ubyte
+    Dim casilla As Ubyte
 
     '---------------------------------------------------------------
-    For a = 1 To NUM_RAYOS
-        sub_actualiza_rayo rayo(), a ' --- ACTUALIZAR RAYO antes ---
+    For a = 0 To NUM_RAYOS
+        ' ----- ACTUALIZAR RAYO antes ------
+        sub_actualiza_rayo(a)
 
         '------------------------------------------------------------------------------------
         '---        CHEQUEAMOS CUAL es el mas CORTO ... HORIZONTAL / VERTICAL??
@@ -328,81 +343,87 @@ Sub el_rayo()
         distanciaHorizontal = 9999 'Inicializamos EXAGERADAMENTE por defecto
         distanciaVertical = 9999
 
-        If sub_colisionesHorizontales(rayo(), a) Then
-            whx = rayo(a).wallHitXHorizontal
-            why = rayo(a).wallHitYHorizontal
+        If (sub_colisionesHorizontales(a) = 1) Then
+
+            whx = rayoWallHitXHorizontal(a)
+            why = rayoWallHitYHorizontal(a)
             'distanciaEntrePuntos = Sqr((whx - rayo(a).x) * (whx - rayo(a).x) + (why - rayo(a).y) * (why - rayo(a).y))
-            distanciaEntrePuntos = calculaDistanciaEntrePuntos(whx, why, rayo(a).x, rayo(a).y)
+            calcula_distancia_entre_puntos(whx, why, rayoX(a), rayoY(a))
             distanciaHorizontal = distanciaEntrePuntos
+
         End If
 
-        If sub_colisionesVerticales(rayo(), a) Then
-            whx = rayo(a).wallHitXVertical
-            why = rayo(a).wallHitYVertical
+        If (sub_colisionesVerticales(a) = 1) Then
+
+            whx = rayoWallHitXVertical(a)
+            why = rayoWallHitYVertical(a)
             'distanciaEntrePuntos = Sqr((whx - rayo(a).x) * (whx - rayo(a).x) + (why - rayo(a).y) * (why - rayo(a).y))
-            distanciaEntrePuntos = calculaDistanciaEntrePuntos(whx, why, rayo(a).x, rayo(a).y)
+            calcula_distancia_entre_puntos(whx, why, rayoX(a), rayoY(a))
             distanciaVertical = distanciaEntrePuntos
+
         End If
 
-        If distanciaHorizontal < distanciaVertical Then
-            rayo(a).wallHitX = rayo(a).wallHitXHorizontal
-            rayo(a).wallHitY = rayo(a).wallHitYHorizontal
-            rayo(a).distancia = distanciaHorizontal
-            colorPared = pared_claro
+        If (distanciaHorizontal < distanciaVertical) Then
+
+            rayoWallHitX(a) = rayoWallHitXHorizontal(a)
+            rayoWallHitY(a) = rayoWallHitYHorizontal(a)
+            rayoDistancia(a) = distanciaHorizontal
+            tonoPared = 1
             'LINEA DE LA TEXTURA a dibujar ------------
-            casilla = Int(rayo(a).wallHitX / TILE_X) * TILE_X
-            rayo(a).pixelTextura = rayo(a).wallHitX - casilla
-            rayo(a).idTextura = 0 + (nivel - 1) * 100 + rayo(a).valorTH
+            'casilla = INT(rayo(a).wallHitX / TILE_X) * TILE_X
+            'rayo(a).pixelTextura = rayo(a).wallHitX - casilla
+            'rayo(a).idTextura = 0 + (nivel - 1) * 100 + rayo(a).valorTH
+
         Else
-            rayo(a).wallHitX = rayo(a).wallHitXVertical
-            rayo(a).wallHitY = rayo(a).wallHitYVertical
-            rayo(a).distancia = distanciaVertical
-            colorPared = pared_oscuro
+            rayoWallHitX(a) = rayoWallHitXVertical(a)
+            rayoWallHitY(a) = rayoWallHitYVertical(a)
+            rayoDistancia(a) = distanciaVertical
+            tonoPared = 0
             'LINEA DE LA TEXTURA a dibujar ------------
-            casilla = Int(rayo(a).wallHitY / TILE_Y) * TILE_Y
-            rayo(a).pixelTextura = rayo(a).wallHitY - casilla
-            rayo(a).idTextura = 0 + (nivel - 1) * 100 + rayo(a).valorTV + 10
+            'casilla = INT(rayo(a).wallHitY / TILE_Y) * TILE_Y
+            'rayo(a).pixelTextura = rayo(a).wallHitY - casilla
+            'rayo(a).idTextura = 0 + (nivel - 1) * 100 + rayo(a).valorTV + 10
+
         End If
 
-        corregir_ojoDePez rayo(), a
+        'corregir_ojoDePez rayo(a)
 
-        c = rayo(a).columna
-        zBuffer(c) = rayo(a).distancia
+        'c = rayo(a).columna
+        'zBuffer(c) = rayo(a).distancia
 
-        sub_dibuja_rayo rayo(), a
+        sub_dibuja_rayo(a)
 
     Next a
 
 End Sub
 
 '================================================================================
-Sub corregir_ojoDePez(rayo() As rayo, a As Integer)
+Sub corregir_ojoDePez(a As Integer)
 
-    rayo(a).distancia = rayo(a).distancia * Cos(rayo(a).anguloRotacion - rayo(a).angulo)
+    rayoDistancia(a) = rayoDistancia(a) * Cos(rayoAnguloRotacion(a) - rayoAngulo(a))
 
 End Sub
 
 '================================================================================
-Function sub_colisionesHorizontales(rayo() As rayo, a As Integer)
+Function sub_colisionesHorizontales(a As Integer)
 
-    Dim colisionH As _Bit
+    Dim colisionH As Ubyte
 
-    Dim xIntercept As Single
-    Dim yIntercept As Single
+    Dim xIntercept As Integer
+    Dim yIntercept As Integer
 
-    Dim xStep As Single
-    Dim yStep As Single
+    Dim xStep As Integer
+    Dim yStep As Integer
 
-    Dim adyacente As Single
+    Dim adyacente As Integer
 
-    Dim siguienteXHorizontal As Single
-    Dim siguienteYHorizontal As Single
+    Dim siguienteXHorizontal As Integer
+    Dim siguienteYHorizontal As Integer
 
     Dim casillaX As Integer
     Dim casillaY As Integer
 
     '-----------------------------------------------------------------------
-    sub_colisionesHorizontales = 0
     colisionH = 0
 
     xIntercept = 0
@@ -412,75 +433,77 @@ Function sub_colisionesHorizontales(rayo() As rayo, a As Integer)
     yStep = 0
 
     '-- Buscamos la 1ra INTERSECCION HORIZONTAL ----------------
-    yIntercept = Int(rayo(a).y / TILE_Y) * TILE_Y
+    yIntercept = INT(rayoY(a) / TILE_Y) * TILE_Y
 
     ' Si apunta hacia ABAJO, INCREMENTAMOS 1 Tile --------------
-    If abajo(rayo(), a) Then yIntercept = yIntercept + TILE_Y
+    If (abajo(a) = 1) Then yIntercept = yIntercept + TILE_Y
 
     ' Se le SUMA el cateto ADYACENTE ---------------------------
-    adyacente = (yIntercept - rayo(a).y) / Tan(rayo(a).angulo)
-    xIntercept = rayo(a).x + adyacente
+    adyacente = (yIntercept - rayoY(a)) / Tan(rayoAngulo(a))
+    xIntercept = rayoX(a) + adyacente
 
     ' Calculamos los STEPs -------------------------------------
     yStep = TILE_Y
-    xStep = yStep / Tan(rayo(a).angulo) 'calculamos el otro STEP
+    xStep = yStep / Tan(rayoAngulo(a)) 'calculamos el otro STEP
 
     ' Si vamos a la IZQUIERDA o ARRIBA, el paso es negativo ----
-    If Not abajo(rayo(), a) Then yStep = -yStep
+    If (abajo(a) = 0) Then yStep = -yStep
 
-    If (izquierda(rayo(), a) And xStep > 0) Or (Not izquierda(rayo(), a) And xStep < 0) Then xStep = -xStep
+    If (((izquierda(a) = 0) AND (xStep > 0)) OR (izquierda(a) = 1) AND (xStep < 0)) Then xStep = -xStep
 
     '----------------------------------------------------------------------------
     siguienteXHorizontal = xIntercept
     siguienteYHorizontal = yIntercept
 
     ' Si apunta hacia ARRIBA, FORZAMOS un PIXEL Extra ---------------------------
-    If Not abajo(rayo(), a) Then siguienteYHorizontal = siguienteYHorizontal - 1
+    If (abajo(a) = 0) Then siguienteYHorizontal = siguienteYHorizontal - 1
 
     '------------------------------------------------------------------------------------
     '---    BUCLE para BUSCAR el PTO de COLISION (horizontal)
     '------------------------------------------------------------------------------------
     Do
-        casillaX = Int(siguienteXHorizontal / TILE_X)
-        casillaY = Int(siguienteYHorizontal / TILE_Y)
+        casillaX = INT(siguienteXHorizontal / TILE_X)
+        casillaY = INT(siguienteYHorizontal / TILE_Y)
         'LOCATE 1, 40: PRINT casillaX; casillaY
 
-        If colision_escenario(casillaX, casillaY) Then
-            sub_colisionesHorizontales = -1
-            colisionH = -1
-            rayo(a).valorTH = valorTile(casillaX, casillaY)
-            rayo(a).wallHitXHorizontal = siguienteXHorizontal
-            rayo(a).wallHitYHorizontal = siguienteYHorizontal
+        If (colision_escenario(casillaX, casillaY) = 1) Then
+
+            colisionH = 1
+            rayoWallHitXHorizontal(a) = siguienteXHorizontal
+            rayoWallHitYHorizontal(a) = siguienteYHorizontal
+            Return 1
+
         Else
             siguienteXHorizontal = siguienteXHorizontal + xStep
             siguienteYHorizontal = siguienteYHorizontal + yStep
         End If
 
-    Loop Until colisionH
+    Loop Until colisionH = 1
+
+    Return 0
 
 End Function
 
 '================================================================================
-Function sub_colisionesVerticales(rayo() As rayo, a As Integer)
+Function sub_colisionesVerticales(a As Integer)
 
-    Dim colisionV As _Bit
+    Dim colisionV As Ubyte
 
-    Dim xIntercept As Single
-    Dim yIntercept As Single
+    Dim xIntercept As Integer
+    Dim yIntercept As Integer
 
-    Dim xStep As Single
-    Dim yStep As Single
+    Dim xStep As Integer
+    Dim yStep As Integer
 
-    Dim opuesto As Single
+    Dim opuesto As Integer
 
-    Dim siguienteXVertical As Single
-    Dim siguienteYVertical As Single
+    Dim siguienteXVertical As Integer
+    Dim siguienteYVertical As Integer
 
     Dim casillaX As Integer
     Dim casillaY As Integer
 
     '--------------------------------------------------------------------------
-    sub_colisionesVerticales = 0
     colisionV = 0
 
     xIntercept = 0
@@ -489,128 +512,122 @@ Function sub_colisionesVerticales(rayo() As rayo, a As Integer)
     xStep = 0
     yStep = 0
 
-    '-- Buscamos la 1ra INTERSECCION VERTICAL ----------------
-    xIntercept = Int(rayo(a).x / TILE_X) * TILE_X
+    '-- Buscamos la 1ra INTERSECCION VERTICAL -----------------
+    xIntercept = INT(rayoX(a) / TILE_X) * TILE_X
 
     ' Si apunta hacia DCHA, INCREMENTAMOS 1 Tile --------------
-    If Not izquierda(rayo(), a) Then xIntercept = xIntercept + TILE_X
+    If (izquierda(a) = 0) Then xIntercept = xIntercept + TILE_X
     'xIntercept = xIntercept + TILE_X
 
     ' Se le SUMA el cateto OPUESTO ---------------------------
-    opuesto = (xIntercept - rayo(a).x) * Tan(rayo(a).angulo)
-    yIntercept = rayo(a).y + opuesto
+    opuesto = (xIntercept - rayoX(a)) * Tan(rayoAngulo(a))
+    yIntercept = rayoY(a) + opuesto
 
     ' Calculamos los STEPs -------------------------------------
     xStep = TILE_X
 
     ' Si vamos a la IZQUIERDA, INVERTIMOS -----------------------
-    If izquierda(rayo(), a) Then xStep = -xStep
+    If (izquierda(a) = 1) Then xStep = -xStep
 
-    yStep = TILE_X * Tan(rayo(a).angulo) 'calculamos el otro STEP
+    yStep = TILE_X * Tan(rayoAngulo(a)) 'calculamos el otro STEP
 
-    If (Not abajo(rayo(), a) And yStep > 0) Or (abajo(rayo(), a) And yStep < 0) Then yStep = -yStep
+    If ((abajo(a) = 0) AND (yStep > 0) OR (abajo(a) = 1) AND (yStep < 0)) Then yStep = -yStep
 
     '------------------------------------------------------------------------------
     siguienteXVertical = xIntercept
     siguienteYVertical = yIntercept
 
     ' Si apunta hacia IZQUIERDA, FORZAMOS un PIXEL Extra --------------------
-    If izquierda(rayo(), a) Then siguienteXVertical = siguienteXVertical - 1
+    If (izquierda(a) = 1) Then siguienteXVertical = siguienteXVertical - 1
 
     '------------------------------------------------------------------------------------
     '--- BUCLE para BUSCAR el PTO de COLISION (vertical)
     '------------------------------------------------------------------------------------
     Do
-        casillaX = Int(siguienteXVertical / TILE_X)
-        casillaY = Int(siguienteYVertical / TILE_Y)
+        casillaX = INT(siguienteXVertical / TILE_X)
+        casillaY = INT(siguienteYVertical / TILE_Y)
         'LOCATE 5, 10: PRINT casillaX; casillaY
 
-        If colision_escenario(casillaX, casillaY) Then
-            sub_colisionesVerticales = -1
-            colisionV = -1
-            rayo(a).valorTV = valorTile(casillaX, casillaY)
-            rayo(a).wallHitXVertical = siguienteXVertical
-            rayo(a).wallHitYVertical = siguienteYVertical
+        If (colision_escenario(casillaX, casillaY) = 1) Then
+
+            colisionV = 1
+            rayoWallHitXVertical(a) = siguienteXVertical
+            rayoWallHitYVertical(a) = siguienteYVertical
+            Return 1
+
         Else
             siguienteXVertical = siguienteXVertical + xStep
             siguienteYVertical = siguienteYVertical + yStep
         End If
 
-    Loop Until colisionV
+    Loop Until colisionV = 1
+
+    Return 0
 
 End Function
 
 '================================================================================
-Sub sub_dibuja_rayo(rayo() As rayo, a As Integer)
+Sub sub_dibuja_rayo(a As Integer)
 
-    Dim xDestino As Single
-    Dim yDestino As Single
+    Dim xDestino As Integer
+    Dim yDestino As Integer
 
-    xDestino = rayo(a).wallHitX
-    yDestino = rayo(a).wallHitY
+    xDestino = Cast(Integer, rayoWallHitX(a))
+    yDestino = Cast(Integer, rayoWallHitY(a))
 
-    If Not modo3d Then
-        Line (rayo(a).x, rayo(a).y)-(xDestino, yDestino), verde
+    INK 4
+
+    If (modo3d = 0) Then
+        Plot rayoX(a), rayoY(a)
+        Draw xDestino, yDestino
     Else
-        sub_render_pared rayo(), a
+        sub_render_pared(a)
     End If
-
-End Sub
-
-Sub sub_actualiza_rayo(rayo() As rayo, a As Integer)
-
-    Shared jugador As jugador
-
-    rayo(a).anguloRotacion = jugador.anguloRotacion
-    'rayo(a).angulo = rayo(a).anguloRotacion - medioFOV + rayo(a).incrementoAngulo * a
-    rayo(a).angulo = rayo(a).angulo + jugador.gira * jugador.velGiro
-    normaliza_angulo_rayo rayo(), a
-
-    rayo(a).x = jugador.x
-    rayo(a).y = jugador.y
 
 End Sub
 
 '================================================================================
-Sub sub_render_pared(rayo() As rayo, a)
+Sub sub_actualiza_rayo(a As Integer)
 
-    Dim altoTile As Single
-    Dim alturaMuro As Single
+    rayoAnguloRotacion(a) = jugadorAnguloRotacion
+    'rayo(a).angulo = rayo(a).anguloRotacion - medioFOV + rayo(a).incrementoAngulo * a
+    rayoAngulo(a) = rayoAngulo(a) + jugadorGira * jugadorVelGiro
+    normaliza_angulo_rayo(a)
 
-    Dim y0 As Single
-    Dim y1 As Single
-    Dim x As Integer
-
-    Dim altura As Single
-    Dim altoTextura As Single
-    Dim alturaTextura As Single
-    Dim idTxt As Integer
-
-    Shared renderTexturas As _Bit
-    Shared texturaPared() As Long
-
-    altoTile = RES_Y 'RES_Y era lo que aprendi (por defecto)
-    alturaMuro = (altoTile / rayo(a).distancia) * rayo(a).distanciaPlanoProyeccion
-
-    y0 = RES_Y / 2 - Int(alturaMuro / 2)
-    y1 = y0 + alturaMuro
-    x = rayo(a).columna
-
-    altura = 0
-    altoTextura = 64
-    alturaTextura = y0 - y1
-
-    If Not renderTexturas Then
-        Line (x, y0)-(x, y1), colorPared
-    Else
-        idTxt = rayo(a).idTextura
-        _PutImage (x, y0)-(x, y1), texturaPared(idTxt), , (rayo(a).pixelTextura, 0)-Step(0, altoTextura)
-    End If
+    rayoX(a) = jugadorX
+    rayoY(a) = jugadorY
 
 End Sub
 
+'================================================================================
+Sub sub_render_pared(a As Ubyte)
+
+    Dim altoTile As Ubyte
+    Dim alturaMuro As Integer
+
+    Dim y0 As Integer
+    Dim y1 As Integer
+    Dim x As Integer
+
+    altoTile = RES_Y 'RES_Y era lo que aprendi (por defecto)
+    alturaMuro = Cast(Integer, (altoTile / rayoDistancia(a)) * rayoDistanciaPlanoProyeccion(a))
+
+    y0 = Cast(Integer, RES_Y / 2 - INT(alturaMuro / 2))
+    y1 = y0 + alturaMuro
+    x = rayoColumna(a)
+
+    '------------------------------------------
+    BRIGHT tonoPared
+    INK colorPared
+
+    Plot x, y0
+    Draw x, y1
+    'Line (x, y0)-(x, y1), tonoPared
+    '------------------------------------------
+End Sub
+
 '=======================================================================
-Sub calcula_distancia_entre_puntos(jugX, jugY, sprX, sprY)
+Sub calcula_distancia_entre_puntos(jugX As Byte, jugY As Byte, sprX As Byte, sprY As Byte)
 
     calculaDistanciaEntrePuntos = 0
     calculaDistanciaEntrePuntos = Sqr((sprX - jugX) * (sprX - jugX) + (sprY - jugY) * (sprY - jugY))
@@ -620,7 +637,7 @@ End Sub
 '=======================================================================
 Function colision_escenario(x As Byte, y As Byte)
 
-    If (x > NRO_COLUMNAS OR y > NRO_FILAS OR x < 1 OR y < 1) Then Return 1
+    If (x > NRO_COLUMNAS OR y > NRO_FILAS OR x < 0 OR y < 0) Then Return 1
     If (escenario(x, y) > 0) Then Return 1
 
     Return 0
@@ -632,7 +649,7 @@ Sub valor_tile(x As Byte, y As Byte)
 
     valorTile = 0
 
-    If (x > NRO_COLUMNAS OR y > NRO_FILAS OR x < 1 OR y < 1) Then
+    If (x > NRO_COLUMNAS OR y > NRO_FILAS OR x < 0 OR y < 0) Then
         valorTile = 1
         Return
     End If
@@ -644,7 +661,7 @@ End Sub
 '=======================================================================
 Function abajo(a As Integer)
 
-    If (rayo(a).angulo < PI_VALUE) Then Return 1
+    If (rayoAngulo(a) < PI_VALUE) Then Return 1
 
     Return 0
 
@@ -653,14 +670,14 @@ End Function
 '=======================================================================
 Function izquierda(a As Integer)
 
-    If (rayo(a).angulo > PI_VALUE / 2 AND rayo(a).angulo < 3 * (PI_VALUE / 2)) Then Return 1
+    If (rayoAngulo(a) > PI_VALUE / 2 AND rayoAngulo(a) < 3 * (PI_VALUE / 2)) Then Return 1
 
     Return 0
 
 End Function
 
 '=======================================================================
-Sub normaliza_angulo()
+Sub normaliza_angulo_jugador()
 
     If (jugadorAnguloRotacion < 0) Then
         jugadorAnguloRotacion = jugadorAnguloRotacion + 2 * PI_VALUE
@@ -677,13 +694,13 @@ End Sub
 '=======================================================================
 Sub normaliza_angulo_rayo(a As Integer)
 
-    If (rayo(a).angulo < 0) Then
-        rayo(a).angulo = rayo(a).angulo + 2 * PI_VALUE
+    If (rayoAngulo(a) < 0) Then
+        rayoAngulo(a) = rayoAngulo(a) + 2 * PI_VALUE
         Return
     End If
 
-    If (rayo(a).angulo > 2 * PI_VALUE) Then
-        rayo(a).angulo = rayo(a).angulo - 2 * PI_VALUE
+    If (rayoAngulo(a) > 2 * PI_VALUE) Then
+        rayoAngulo(a) = rayoAngulo(a) - 2 * PI_VALUE
         Return
     End If
 
