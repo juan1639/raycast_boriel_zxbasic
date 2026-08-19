@@ -9,10 +9,12 @@
 #include "map.bas"
 #include "player.bas"
 #include "raycaster.bas"
+#include "initscreen.bas"
 
 ' ============================================================
 '   INICIALIZACION
 ' ============================================================
+InitScreen()
 InitMap()
 InitRayTable()
 
