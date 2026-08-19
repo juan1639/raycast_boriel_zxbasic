@@ -31,6 +31,31 @@ SUB MovePlayer()
     key$ = INKEY$
 
     REM --------------------------------------------------------
+    REM CAMBIAR COLOR DEL RENDERIZADO (tecla 0)
+    REM --------------------------------------------------------
+    IF key$ = "0" THEN
+
+        colorInk = colorInk + 1
+        IF colorInk > 7 THEN colorInk = 1
+
+        INK colorInk
+
+    END IF
+
+    REM --------------------------------------------------------
+    REM CAMBIAR MODO 3D/2D (tecla 1)
+    REM --------------------------------------------------------
+    IF key$ = "1" THEN
+
+        IF modo3d = 0 THEN
+            modo3d = 1
+        ELSE
+            modo3d = 0
+        END IF
+
+    END IF
+
+    REM --------------------------------------------------------
     REM GIRAR IZQUIERDA
     REM --------------------------------------------------------
     IF key$ = "a" OR key$ = "A" THEN
@@ -42,18 +67,6 @@ SUB MovePlayer()
     REM --------------------------------------------------------
     IF key$ = "d" OR key$ = "D" THEN
         playerAngle = playerAngle + 0.08
-    END IF
-
-    REM --------------------------------------------------------
-    REM CAMBIAR COLOR DEL RENDERIZADO (tecla 0)
-    REM --------------------------------------------------------
-    IF key$ = "0" THEN
-
-        colorInk = colorInk + 1
-        IF colorInk > 7 THEN colorInk = 1
-
-        INK colorInk
-
     END IF
 
     REM --------------------------------------------------------

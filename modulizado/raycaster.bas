@@ -183,10 +183,10 @@ SUB CastRay()
 END SUB
 
 REM ============================================================
-REM SUB: Render
+REM SUB: Render ( 3D )
 REM ============================================================
 SUB Render()
-
+    
     REM --------------------------------------------------------
     REM LIMPIAR PANTALLA
     REM --------------------------------------------------------
@@ -272,6 +272,185 @@ SUB Render()
     NEXT ray
 
 END SUB
+
+REM ============================================================
+REM                   RENDERIZADO ( 2D )
+REM ============================================================
+SUB Render2D()
+
+    REM --------------------------------------------------------
+    REM CONFIGURACION DEL MAPA 2D
+    REM --------------------------------------------------------
+    DIM mapScale AS INTEGER
+    DIM mapOffsetX AS INTEGER
+    DIM mapOffsetY AS INTEGER
+
+    DIM tileX AS INTEGER
+    DIM tileY AS INTEGER
+
+    DIM px AS INTEGER
+    DIM py AS INTEGER
+
+    DIM dirEndX AS INTEGER
+    DIM dirEndY AS INTEGER
+
+    DIM fovLeftX AS INTEGER
+    DIM fovLeftY AS INTEGER
+
+    DIM fovRightX AS INTEGER
+    DIM fovRightY AS INTEGER
+
+    DIM fovAngleLeft AS FLOAT
+    DIM fovAngleRight AS FLOAT
+
+    DIM wallColor AS UBYTE
+
+    REM --------------------------------------------------------
+    REM ESCALA
+    REM
+    REM Cada tile del mapa ocupa 16x16 pixeles.
+    REM --------------------------------------------------------
+    mapScale = TILE
+    mapOffsetX = 8
+    mapOffsetY = 8
+
+    REM --------------------------------------------------------
+    REM LIMPIAR PANTALLA
+    REM --------------------------------------------------------
+    CLS
+    INK colorInk
+    BRIGHT 0
+
+    REM ========================================================
+    REM DIBUJAR MAPA
+    REM ========================================================
+    FOR tileY = 0 TO MAP_H - 1
+
+        FOR tileX = 0 TO MAP_W - 1
+
+            REM ------------------------------------------------
+            REM POSICION DEL TILE
+            REM ------------------------------------------------
+            px = mapOffsetX + tileX * mapScale
+            py = mapOffsetY + tileY * mapScale
+
+            REM ------------------------------------------------
+            REM ¿ES PARED?
+            REM ------------------------------------------------
+            IF world(tileY * MAP_W + tileX) <> 0 THEN
+                wallColor = 7
+            ELSE
+                wallColor = 0
+            END IF
+
+            REM ------------------------------------------------
+            REM DIBUJAR TILE
+            REM ------------------------------------------------
+            IF wallColor <> 0 THEN
+
+                INK wallColor
+
+                REM Esquina superior izquierda
+                PLOT px, py
+
+                REM Linea superior
+                DRAW mapScale - 1, 0
+
+                REM Linea derecha
+                DRAW 0, mapScale - 1
+
+                REM Linea inferior
+                DRAW -(mapScale - 1), 0
+
+                REM Linea izquierda
+                DRAW 0, -(mapScale - 1)
+
+            ELSE
+                REM ------------------------------------------------
+                REM CELDA VACIA
+                REM ------------------------------------------------
+                INK 1
+                PLOT px, py
+                DRAW mapScale - 1, 0
+                DRAW 0, mapScale - 1
+                DRAW -(mapScale - 1), 0
+                DRAW 0, -(mapScale - 1)
+
+            END IF
+
+        NEXT tileX
+
+    NEXT tileY
+
+    REM ========================================================
+    REM POSICION DEL JUGADOR
+    REM ========================================================
+    REM
+    REM playerX / playerY estan expresados en coordenadas
+    REM del mundo.
+    REM
+    REM Los convertimos a coordenadas de pantalla.
+    REM
+    REM px = mapOffsetX + playerX / TILE
+    REM py = mapOffsetY + playerY / TILE
+
+    px = mapOffsetX + playerX
+    py = mapOffsetY + playerY
+
+    REM --------------------------------------------------------
+    REM DIBUJAR JUGADOR
+    REM --------------------------------------------------------
+    INK 2
+    PLOT px - 2, py - 2
+    DRAW 4, 0
+    DRAW 0, 4
+    DRAW -4, 0
+    DRAW 0, -4
+
+    REM ========================================================
+    REM DIRECCION DEL JUGADOR
+    REM ========================================================
+    dirEndX = px + playerCos / 4
+    dirEndY = py + playerSin / 4
+
+    INK 7
+    PLOT px, py
+    DRAW dirEndX - px, dirEndY - py
+
+    REM ========================================================
+    REM CAMPO DE VISION
+    REM ========================================================
+    fovAngleLeft = playerAngle - FOV / 2
+    fovAngleRight = playerAngle + FOV / 2
+
+    REM --------------------------------------------------------
+    REM RAYO IZQUIERDO DEL FOV
+    REM --------------------------------------------------------
+    fovLeftX = px + INT(COS(fovAngleLeft) * 30)
+    fovLeftY = py + INT(SIN(fovAngleLeft) * 30)
+
+    REM --------------------------------------------------------
+    REM RAYO DERECHO DEL FOV
+    REM --------------------------------------------------------
+    fovRightX = px + INT(COS(fovAngleRight) * 30)
+    fovRightY = py + INT(SIN(fovAngleRight) * 30)
+
+    REM --------------------------------------------------------
+    REM DIBUJAR FOV IZQUIERDO
+    REM --------------------------------------------------------
+    INK 6
+    PLOT px, py
+    DRAW fovLeftX - px, fovLeftY - py
+
+    REM --------------------------------------------------------
+    REM DIBUJAR FOV DERECHO
+    REM --------------------------------------------------------
+    PLOT px, py
+    DRAW fovRightX - px, fovRightY - py
+
+END SUB
+
+
 
 
 

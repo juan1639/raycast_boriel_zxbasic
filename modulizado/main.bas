@@ -48,7 +48,12 @@ REM BUCLE PRINCIPAL
 REM ============================================================
 DO
     MovePlayer()
-    Render()
+
+    IF modo3d > 0 THEN
+        Render()
+    ELSE
+        Render2D()
+    END IF
 
 LOOP UNTIL key$ = CHR$(27)
 

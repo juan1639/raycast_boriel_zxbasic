@@ -90,6 +90,9 @@ DIM ray AS INTEGER
 
 DIM key$ AS STRING
 
+REM DEFAULT VISTA EN 3D:
+DIM modo3d AS UBYTE = 1
+
 REM ============================================================
 REM VARIABLES DEL RAYCASTER
 REM ============================================================
@@ -130,15 +133,12 @@ REM ============================================================
 REM COLORES
 REM ============================================================
 REM Color INK por defecto
-DIM colorInk AS UBYTE
-colorInk = 5
+DIM colorInk AS UBYTE = 5
 
 REM Tono de la pared:
-REM
 REM 0 = BRIGHT OFF
 REM 1 = BRIGHT ON
-DIM tonoPared AS UBYTE
-tonoPared = 0
+DIM tonoPared AS UBYTE = 0
 
 REM ============================================================
 REM VARIABLES DE MOVIMIENTO
