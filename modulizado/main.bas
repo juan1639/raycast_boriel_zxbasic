@@ -43,6 +43,8 @@ PAPER 0
 INK colorInk
 CLS
 
+show_scores()
+
 ' ============================================================
 '   BUCLE PRINCIPAL
 ' 

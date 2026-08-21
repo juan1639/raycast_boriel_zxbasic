@@ -8,11 +8,10 @@ SUB InitScreen()
     INK colorInk
     CLS
 
-    PRINT AT 19, 5; INK 7; " Space bar to start "
-    PRINT AT 5, 6; BRIGHT 0; PAPER 7; INK 2; " C O N T R O L E S "
-    PRINT AT 8, 10; " W  S  A  D "
-    PRINT AT 10, 4; " 0 -> Change render color "
-    PRINT AT 12, 4; " 1 -> Change to 2D/3D "
+    PRINT AT 19, 6; INK 6; " Space bar to start "
+    PRINT AT 6, 5; BRIGHT 0; PAPER 7; INK 2; "                     "
+    PRINT AT 7, 5; BRIGHT 0; PAPER 7; INK 2; " R A Y C A S T I N G "
+    PRINT AT 8, 5; BRIGHT 0; PAPER 7; INK 2; "                     "
 
     DO
         k = INKEY$
@@ -21,7 +20,7 @@ SUB InitScreen()
     BEEP 0.2, -9
     CLS
 
-    PRINT AT 12, 8; INK 7; " Cargando... "
+    PRINT AT 12, 9; INK 7; " Cargando... "
 
 END SUB
 

@@ -189,6 +189,7 @@ SUB Render()
     'LIMPIAR PANTALLA
     '--------------------------------------------------------
     CLS
+    show_scores()
 
     '--------------------------------------------------------
     'ACTUALIZAR TRIGONOMETRIA
@@ -316,6 +317,8 @@ SUB Render2D()
     'LIMPIAR PANTALLA
     '--------------------------------------------------------
     CLS
+    show_scores()
+    
     INK colorInk
     BRIGHT 0
 
@@ -444,6 +447,22 @@ SUB Render2D()
     DRAW fovRightX - px, fovRightY - py
 
 END SUB
+
+'============================================================
+'   SUB: Show scores
+' 
+'============================================================
+SUB show_scores()
+
+    POKE 23692, 255 ' para poder imprimir en las 2 ultimas filas
+
+    PRINT AT 22, 1; BRIGHT 0; INK 7; " W S A D -> move controls "
+    PRINT AT 23, 1; BRIGHT 0; INK 6; " 0 -> color ... 1 -> 2D/3D "
+
+    POKE 23692, 3 ' Restaurar a default
+
+END SUB
+
 
 
 
