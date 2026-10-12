@@ -3,7 +3,7 @@ SUB InitScreen()
     DIM k AS STRING
 
     BRIGHT tonoPared
-    BORDER 0
+    BORDER 1
     PAPER 0
     INK colorInk
     CLS

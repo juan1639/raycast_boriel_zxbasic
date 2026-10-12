@@ -38,7 +38,7 @@ UpdatePlayerTrig()
 '   CONF. PANTALLA (bright, border, paper, ink y Clear Screen)
 ' ============================================================
 BRIGHT tonoPared
-BORDER 0
+BORDER 1
 PAPER 0
 INK colorInk
 CLS
